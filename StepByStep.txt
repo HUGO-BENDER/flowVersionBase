@@ -1,0 +1,265 @@
+PS C:\Users\hbender> cd ..
+PS C:\Users> cd ..
+PS C:\> cd C:\athlas_tempo\Cursos\ANGULAR
+PS C:\athlas_tempo\Cursos\ANGULAR>
+PS C:\athlas_tempo\Cursos\ANGULAR>ng new ngFlow --skip-tests
+
+delete all in app.component.html
+
+npm install @angular/flex-layout@latest --save
+https://material.angular.io/guide/getting-started
+ng add @angular/material
+
+edit app.component.html
+ Create 3 row
+
+1º row  6 buttons
+2º row  GridDiamond 14 x 14
+3º row  6 img
+
+<div class="game-screen" fxLayout="column" >
+  <div class="buttonBar" fxFlex="20"></div>
+  <div class="diamondgrid" fxFlexFill></div>
+  <div class="info" fxFlex="20"></div>
+</div>
+css with differents background-color for develop
+
+------------------------------------------------------------------
+
+generate MODEL
+  export interface flowVirus{
+    id: number;
+    name: string;
+    color: string;
+    life: number;
+    ...
+  }
+  export interface flowButton{
+    id: number;
+    color: string;
+    counter: number;
+    virus?: flowVirus;
+    ...
+  }
+  export interface flowTile{
+    id: number;
+    row: number;
+    column: number;
+    life: number;
+    virus?: flowVirus;
+    ...
+  }
+
+
+------------------------------------------------------------------
+ng generate c components/flowButton
+
+  import { Component, Input, Output, EventEmitter  } from '@angular/core';
+  import { flowButton } from './../../app.model';
+
+export class FlowButtonComponent  {
+  @Input() flowbutton!: flowButton;
+  @Output() startFlowEvent = new EventEmitter();
+  ...
+  onStartFlow(){
+    this.startFlowEvent.emit();
+  }
+
+  <button type="button" mat-stroked-button (click)="onStartFlow()">
+    {{flowbutton.color}}
+    {{flowbutton.counter}}
+  </button >
+
+in PARENT
+<div *ngFor="let button of buttons, let i = index" fxFlex="10">
+  <app-flow-button [flowbutton]="button" (startFlowEvent)="startFlow(i)"></app-flow-button>
+</div>
+
+startFlow(index:number){
+  alert("click en boton "+ index +" " + this.buttons[index].color)
+}
+
+------------------------------------------------------------------
+ng generate c components/flowTile
+
+-- flow-tile.component.ts
+import { flowTile } from 'src/app/app.model';
+
+export class FlowTileComponent {
+  @Input() flowTile!: flowTile;
+
+-- flow-tile.component.html
+<div class="tileGame" fxFlex [style.background]="flowTile.color">
+  {{flowTile.id}}
+</div>
+
+in PARENT
+<div class="diamondgrid" fxFlex fxLayout="column" fxLayoutAlign="space-around center">
+  <div *ngFor="let row of grid" fxLayout="row">
+    <div *ngFor="let tile of row">
+      <app-flow-tile [flowTile]="tile"></app-flow-tile>
+    </div>
+  </div>
+</div>
+
+------------------------------------------------------------------
+-- app.component.ts
+  Declare Variables (later take from db or file)
+
+  cantTurn = 25;  <--  life
+  cantVirus = 6;
+  gridX = 14;
+  gridY = 14;
+  palette: Array<string> = ['#008000', '#000080', ....  ,   ];
+
+  virus: Array<flowVirus> = [];
+  buttons: Array<flowButton> = [];
+  grid: Array<Array<flowTile>> = [[]];
+
+  constructor() {
+    this.virus = this.getVirus();
+    this.buttons = this.getButtons();
+    this.grid = this.getGrid();
+  }
+
+  getVirus(): flowVirus[] {
+    for (let index = 0; index < this.cantVirus; index++) {
+      this.virus.push({
+        id: index,
+        name: 'virus 0' + (index + 1).toString,
+        color: this.palette[index],
+        life: this.cantTurn,
+      });
+    }
+    return this.virus;
+  }
+  getGrid(): flowTile[][] {
+    ...  // ATENTION: Grid is an array of ROWs with an array of tiles|column.  THEN => grid[row][col] => THEN grid [y][x]   NOT [x][y]
+  }
+  getButtons(): flowButton[] {
+    ...
+  }
+
+
+------------------------------------------------------------------
+-- app.component.ts   RESIZE Keep size in square
+  constructor() {
+    ...
+    this.calculateGridSize();
+  }
+
+  @HostListener('window:resize') onResize() {
+    this.calculateGridSize();
+  }
+
+  calculateGridSize() {
+    if ((window.innerHeight * 0.75) > window.innerWidth) {
+      this.gridWidthInPx = window.innerWidth;
+      this.gridHeightInPx = window.innerWidth;
+    }
+    else {
+      this.gridWidthInPx = Math.floor((window.innerHeight * 0.75));
+      this.gridHeightInPx = Math.floor((window.innerHeight * 0.75));
+    }
+  }
+
+-- app.component.html
+  <div fxFlex fxLayout="row" fxLayoutAlign="center center">
+    <div class="squareboard" [style.width.px]="gridWidthInPx" [style.height.px]="gridHeightInPx"
+    fxLayout="column" fxLayoutAlign="center stretch">
+      <div *ngFor="let row of grid" fxLayout="row wrap" fxFlex >
+        <div *ngFor="let tile of row" fxFlex>
+          <app-flow-tile [flowTile]="tile" fxFlexFill></app-flow-tile>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+------------------------------------------------------------------
+-- app.component.html
+  <div class="info" fxFlex="15" fxLayout="row" fxLayoutAlign="center center">
+      <h3>Life: {{cantTurn}} </h3>
+  </div>
+
+------------------------------------------------------------------
+-- app.component.ts   GAME LOGIC
+
+  buttonClick -> startFlow
+  startFlow(index: number) {
+    if (this.cantTurn == 0) {
+      return;
+    }
+
+    if (this.grid[0][0].color == this.virus[index].color) {
+      console.log('movimiento no permitido');
+      return;
+    }
+
+    this.cantTurn--;
+    this.tilesToChange = [];
+
+    const oldColor = this.grid[0][0].color;
+    const newColor = this.buttons[index].color;
+    this.DoGameTurn(oldColor, newColor, 0, 0);
+
+     if (!this.checkGameWon()){
+      this.checkLostGame();
+    }
+
+  }
+  checkGameWon() {
+    //-- Check all tiles
+    // if (){
+    //   alert("GANASTE");
+    // }
+  }
+  checkLostGame() {
+    if (this.cantTurn < 1){
+      alert("PERDISTE");
+    }
+  }
+
+  DoGameTurn(oldColor: string, newColor: string, row: number, col: number ) {
+    if (oldColor === newColor || this.grid[row][col].color !== oldColor) {
+      return;
+    }
+    //--                        row-1
+    //-- recursive for   col-1   y,x   col+1
+    //--                        row+1
+}
+
+
+------------------------------------------------------------------
+-- FINISH  Proof of concept
+------------------------------------------------------------------
+-- SAVE TO GIT
+------------------------------------------------------------------
+git init
+
+git remote add origin https://github.com/HUGO-BENDER/flowVersionBase.git
+git branch -M main
+git push -u origin main
+
+
+------------------------------------------------------------------
+-- Publish
+------------------------------------------------------------------
+npm install -g firebase-tools
+
+firebase login
+firebase init
+npm install firebase   (¿¿¿@angular/fire install firebase ???)
+follow   https://github.com/angular/angularfire/blob/HEAD/docs/install-and-setup.md
+ng add @angular/fire
+ng build
+
+edit firebase.json
+
+{
+  "hosting": [
+    {
+      "site": "dev001-ng-flow",
+      "public": "dist/ng-flow",
+
+firebase deploy --only hosting:dev001-ng-flow

@@ -1,0 +1,14 @@
+{
+  "projects": {
+    "default": "ludum-nostrum"
+  },
+  "targets": {
+    "ludum-nostrum": {
+      "hosting": {
+        "ngFlow": [
+          "dev001-ng-flow"
+        ]
+      }
+    }
+  }
+}

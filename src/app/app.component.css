@@ -1,0 +1,16 @@
+.buttonBar{
+  background-color: rgb(255, 225, 127);
+}
+.game-screen{
+  background-color: aquamarine;
+  height: 100%;
+}
+.squareboard{
+  box-sizing: border-box;
+  border: 1px solid red;
+  /* transform: rotate(45deg); */
+}
+
+.info{
+  background-color: beige;
+}
